@@ -1,7 +1,7 @@
 cppstudy
 ========
 
-demo code for study cpp study
+demo code for cpp study
 
 hello everyone,
 
