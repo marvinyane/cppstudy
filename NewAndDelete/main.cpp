@@ -24,8 +24,11 @@ class NewHandlerHolder
         NewHandlerHolder& operator=(const NewHandlerHolder&);
 };
 
-std::new_handler Widget::currentHandler = 0;
-std::new_handler Widget::set_new_handler(std::new_handler p) throw()
+template<typename T>
+std::new_handler NewHandlerSupport<T>::currentHandler = 0;
+
+    template<typename T>
+std::new_handler NewHandlerSupport<T>::set_new_handler(std::new_handler p) throw()
 {
     std::new_handler oldHandler = currentHandler;
     currentHandler = p;
@@ -33,7 +36,8 @@ std::new_handler Widget::set_new_handler(std::new_handler p) throw()
     return oldHandler;
 }
 
-void* Widget::operator new(std::size_t size) throw(std::bad_alloc)
+template<typename T>
+void* NewHandlerSupport<T>::operator new(std::size_t size) throw(std::bad_alloc)
 {
     NewHandlerHolder h(std::set_new_handler(currentHandler));
     return ::operator new(size);
