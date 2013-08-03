@@ -1,12 +1,13 @@
 #include <iostream>
 #include <vector>
+using namespace std;
 
 struct A
 {
     int a;
 };
 
-struct B : public struct A
+struct B : A
 {
     int b;
 };
