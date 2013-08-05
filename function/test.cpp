@@ -40,8 +40,3 @@ int main()
     func(3);
 }
 
-int main()
-{
-    for(i = 0; i < MAX; i++)
-
-}
