@@ -2,12 +2,16 @@
 #include <string>
 #include <complex>
 #include <tuple>
+#include <memory>
 
 using namespace std;
-
-int main()
+void testTupleSize()
 {
     tuple<string, int, int, complex<double>> t ;
+
+    get<0>(t) = "hello";
+
+    cout << get<0>(t) << endl;
 
     tuple<string , int , int> t1("hello11", 33, 44);
 
@@ -33,4 +37,39 @@ int main()
     
     auto t5 = make_tuple('c', 2); // the tuple should be assigned
     cout << "size of t5 = " << sizeof(t5) << endl;
+}
+
+void testTupleCon()
+{
+    class Base
+    {
+        public:
+            Base()
+            {
+                cout << "create \n";
+            }
+            ~Base()
+            {
+                cout << "destroy \n";
+            }
+    };
+  //  shared_ptr<Base> spb(new Base);
+ //  Base* spb = new Base;
+    Base b;
+
+    auto t = make_tuple(ref(b));    // if here is not reference, the ~Base may be call twice
+}
+
+template <typename... Args>
+void foo(const tuple<Args...> t)
+{
+    cout << sizeof...(Args) << endl;
+}
+
+int main()
+{
+    //testTupleSize();
+   // testTupleCon();
+   auto t = make_tuple(43, "he");
+   foo(t);
 }
