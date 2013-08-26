@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -14,6 +15,7 @@ class B : public A
 {
     public:
         int b1;
+        void func();
     private:
         int b2;
 };
@@ -30,5 +32,6 @@ int main()
 {
     B* b = new C;
     A* a = dynamic_cast<A*>(b);
-    
+    vector<int> vec;
+    vec.push_back(3);
 }
