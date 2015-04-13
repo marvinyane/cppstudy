@@ -1,5 +1,5 @@
 #include <iostream>
-#include <tr1/memory>
+#include <memory>
 
 using namespace std;
 
@@ -15,9 +15,9 @@ class Base{
         }
 };
 
-tr1::shared_ptr<Base> createFactroy(int m)
+shared_ptr<Base> createFactroy(int m)
 {
-    tr1::shared_ptr<Base> ptr(new Base);
+    shared_ptr<Base> ptr(new Base);
 
     return ptr;
 }
@@ -33,6 +33,6 @@ int main()
     cout << pObj2.get() << endl;
     */
 
-    tr1::shared_ptr<Base> ptr = createFactroy(2);
+    shared_ptr<Base> ptr = createFactroy(2);
     cout << "Destroy start or over \n";
 }

@@ -10,7 +10,8 @@ class Base
             cout << "create Base... \n";
         }
 
-        ~Base()
+        // this function must be virtual!
+        virtual ~Base()
         {
             cout << "delete Base... \n";
         }

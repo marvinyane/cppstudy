@@ -41,6 +41,7 @@ test& test::operator = (test& t)
         this->nameLen = 0;
     }
 
+    cout << "am i here???? " << endl;
     this->name = new char[t.nameLen];
     strcpy(this->name, t.name);
     this->nameLen = t.nameLen;
@@ -48,19 +49,29 @@ test& test::operator = (test& t)
     return *this;
 }
 
+test createObject()
+{
+    test t1("helloTest");
+    cout << "the address of t1 is "<< &t1 << endl;
+    return t1;
+}
+
+void Func(test &t)
+{
+    cout << "the address of t1 is "<< &t << endl;
+    t.printName();
+}
+
 
 
 int main()
 {
-    test t1("hello");
-    test t2("world");
+    //Func(createObject());
+    test t = createObject();
+    //cout << "the address of t1 is "<< &t << endl;
+    test t1 = createObject();
+
+    t = t1;
     
-    t1.printName();
-    t2.printName();
-
-    t2 = t1;
-
-    t2.printName();
-
     return 0;
 }

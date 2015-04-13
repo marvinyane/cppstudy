@@ -5,7 +5,7 @@ using namespace std;
 
 class Base{
     public:
-        explicit Base()
+        explicit Base(int a) : a(a)
         {
             cout << "here ? \n" ;
         }
@@ -18,31 +18,22 @@ class Base{
         virtual void plus()
         {
             cout << "am i here ? " << endl;
-            a = 20;
+            a += 20;
         }
 
         int a;
 
 };
 
-class Derived : public Base{
-    public:
-        explicit Derived()
-        {
-            this->a = 2;
-        }
-        virtual void plus()
-        {
-            //Base::plus();
-            this->a++;
-        }
-};
-
+void func(Base t)
+{
+    t.show();
+}
 
 int main()
 {
-    Derived d;
-    d.Base::plus();
+    Base a(3);
+    func(a);
 
-    d.show();
+    func(5);
 }

@@ -14,6 +14,11 @@ class Base
 class Derived : public Base
 {
     public:
+        int func(int a)
+        {
+            cout << "derived " << a << endl;
+        }
+
         int func(double b)
         {
             cout << "Derived " << endl;
@@ -22,7 +27,7 @@ class Derived : public Base
 
 int main()
 {
-    Base * d = new Derived;
+    Derived* d = new Derived;
 
     int a = 3;
     double b = 4;

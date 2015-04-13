@@ -6,6 +6,10 @@ using namespace std;
 
 class Base{
     public:
+        Base()
+        {
+            cout << "null base \n";
+        }
         Base(int c)
         {
             cout << "Base..." << c << endl;
@@ -15,7 +19,7 @@ class Base{
             cout << "delete Base..." << endl;
         }
 
-        virtual int func1() = 0;
+        virtual int func1() ;
 };
 
 int Base::func1()
@@ -25,7 +29,8 @@ int Base::func1()
 
 class Derived : public Base{
     public:
-        Derived(int c):Base(createParamter(c))
+        //Derived(int c):Base(createParamter(c))
+        Derived(int c)
         {
             cout << "Derived... " << c << endl;
         }
