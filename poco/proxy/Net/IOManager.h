@@ -59,6 +59,8 @@ class IOManager
 
         bool addSocket(Net::Socket *socket, SocketHandler *handler);
 
+        bool removeSocket(Net::Socket* socket);
+
         int readSocket(Net::Socket *socket, char* s, int length);
 
         int writeSocket(Net::Socket *socket, const char* s, int length);
@@ -78,11 +80,26 @@ class IOManager
                 base::RingBuffer m_read;
                 base::RingBuffer m_write;
 
+                char* m_readLeft;
+                int   m_readSign;
+                int   m_readLen;
+
+                char* m_writeLeft;
+                int   m_writeSign;
+                int   m_writeLen;
+
                 SocketNode(Net::Socket *socket, SocketHandler *handler) :
                     m_socket(socket),
                     m_handler(handler),
                     m_read(),
-                    m_write()
+                    m_write(),
+                    m_readLeft(NULL),
+                    m_readSign(0),
+                    m_readLen(0),
+                    m_writeLeft(NULL),
+                    m_writeSign(0),
+                    m_writeLen(0)
+
                 {
                 }
         };
@@ -91,7 +108,7 @@ class IOManager
 
         /*add - delete - search*/
         void addSocketNode(Net::Socket* socket, base::SocketHandler* handler);
-        void deleteSocketNode(Net::Socket* socket);
+        bool deleteSocketNode(Net::Socket* socket);
         SocketNode* searchSocketNode(Net::Socket* socket);
 };
 

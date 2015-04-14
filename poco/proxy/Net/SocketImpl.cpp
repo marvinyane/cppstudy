@@ -131,13 +131,38 @@ Poco::Net::Socket* StreamSocket::getPorxy()
 
 int StreamSocket::sendBytes(const char* buffer, int length)
 {
-    std::cout << "send bytes fd : " << proxy->impl()->sockfd() << "\n";
-    return proxy->sendBytes(reinterpret_cast<const void*>(buffer), length);
+    int ret = 0;
+    try
+    {
+        ret = proxy->sendBytes(reinterpret_cast<const void*>(buffer), length);
+    }
+    catch (Poco::Exception& e)
+    {
+        std::cout << "send bytes exception : " << e.what() << "\n";
+    }
 }
 
 int StreamSocket::receiveBytes(char* buffer, int length)
 {
-    proxy->receiveBytes(reinterpret_cast<void*>(buffer), length);
+    int ret = 0;
+
+    try
+    {
+        ret = proxy->receiveBytes(reinterpret_cast<void*>(buffer), length);
+    }
+    catch(Poco::TimeoutException& e)
+    {
+        std::cout << "time out : " << e.what() << "\n";
+    }
+    catch(Poco::Net::NetException& e)
+    {
+        std::cout << "Net : " << e.what() << "\n";
+    }
+    catch(...)
+    {
+    }
+
+    return ret;
 }
 
 }  // NET

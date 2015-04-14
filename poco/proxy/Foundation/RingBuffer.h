@@ -2,6 +2,7 @@
 #define __RINGBUFFER_H__
 
 #include <string>
+#include <cstring>
 
 namespace base
 {
@@ -77,22 +78,26 @@ class RingBuffer
         struct Record
         {
             public:
-                const char *s;
+                char *s;
                 int len;
                 Record* next;
 
-                Record():s(NULL),next(NULL),len(0)
+                Record():s(NULL),len(0),next(NULL)
                 {
                 }
-                Record(const char* s, int len):s(s),next(NULL),len(len)
+                Record(const char* data, int dataLen)
                 {
+                    next = NULL;
+                    len = dataLen;
+                    s = new char[len];
+                    memcpy(s, data, len);
                 }
         };
 
         Record *m_head;
         Record *m_tail;
         int m_size;
-        
+
         bool CompareAndSet(Record** r, Record* o, Record* n)
         {
 #if 1

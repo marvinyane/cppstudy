@@ -39,11 +39,12 @@ void IOManager::run()
         for (; it != m_sockets.end(); it++)
         {
             SocketNode* node = *it;
-            while (node->m_write.size())
+            while (node->m_write.size() > 0)
             {
                 int length = 0;
                 char* str = node->m_write.pop(&length);
-                int ret = node->m_socket->sendBytes(str, length);
+                // TODO:
+                node->m_socket->sendBytes(str, length);
                 delete [] str;
             }
 
@@ -59,7 +60,7 @@ void IOManager::run()
                 char buffer[1000];
                 memset(buffer, 0, sizeof(buffer));
 
-                int len = s->receiveBytes(buffer, 1000);
+                int len = s->receiveBytes(buffer, sizeof(buffer));
 
                 SocketNode* node = searchSocketNode(s);
                 node->m_read.push(buffer, len);
@@ -73,17 +74,71 @@ void IOManager::run()
 bool IOManager::addSocket(Net::Socket *socket, SocketHandler *handler)
 {
     addSocketNode(socket, handler);
+    return true;
+}
+
+bool IOManager::removeSocket(Net::Socket* socket)
+{
+    return deleteSocketNode(socket);
 }
 
 int IOManager::readSocket(Net::Socket *socket, char* s, int length)
 {
-    int readLen = 0;
+    int readSign = 0;
     SocketNode* node = searchSocketNode(socket);
 
-    char* tmp = node->m_read.pop(&readLen);
+    if (node->m_readLeft)
+    {
+        if ((node->m_readLen - node->m_readSign) > length)
+        {
+            memcpy(s, node->m_readLeft + node->m_readSign, length);
+            node->m_readLen -= length;
+            node->m_readSign += length;
+     
+            return length;
+        }
+        else
+        {
+            memcpy(s, node->m_readLeft + node->m_readSign, node->m_readLen - node->m_readSign);
+            readSign += node->m_readLen - node->m_readSign;
+            delete [] node->m_readLeft;
+            node->m_readLeft = NULL;
+            node->m_readSign = 0;
+            node->m_readLen = 0;
+        }
+    }
 
-    memcpy(s, tmp, readLen);
-    return readLen;
+    while (1)
+    {
+        int readLen = 0;
+        char* tmp = node->m_read.pop(&readLen);
+        if (tmp == NULL)
+        {
+            return readSign;
+        }
+
+        if (readLen <= (length - readSign))
+        {
+            memcpy(s + readSign, tmp, readLen);
+            readSign += readLen;
+            delete [] tmp;
+        }
+        else
+        {
+            if (readSign != length)
+            {
+                memcpy(s + readSign, tmp, length - readSign);
+            }
+
+            node->m_readLeft = tmp;
+            node->m_readSign = length - readSign;
+            node->m_readLen = readLen;
+
+            return length;
+        }
+    }
+
+    return 0;
 }
 
 int IOManager::writeSocket(Net::Socket *socket, const char* s, int length)
@@ -95,6 +150,17 @@ int IOManager::writeSocket(Net::Socket *socket, const char* s, int length)
     return length;
 }
 
+int IOManager::readSocketAvalible(Net::Socket *socket)
+{
+    SocketNode* node = searchSocketNode(socket);
+    
+    if (node)
+    {
+        return node->m_read.size() + node->m_readLen - node->m_readSign;
+    }
+
+    return 0;
+}
 
 void IOManager::addSocketNode(Net::Socket *socket, SocketHandler *handler)
 {
@@ -102,7 +168,7 @@ void IOManager::addSocketNode(Net::Socket *socket, SocketHandler *handler)
     m_sockets.push_back(node);
 }
 
-void IOManager::deleteSocketNode(Net::Socket *socket)
+bool IOManager::deleteSocketNode(Net::Socket *socket)
 {
     std::vector<SocketNode*>::iterator it = m_sockets.begin();
 
@@ -111,9 +177,11 @@ void IOManager::deleteSocketNode(Net::Socket *socket)
         if ((*it)->m_socket == socket)
         {
             m_sockets.erase(it);
-            break;
+            return true;
         }
     }
+
+    return false;
 }
 
 IOManager::SocketNode* IOManager::searchSocketNode(Net::Socket *socket)

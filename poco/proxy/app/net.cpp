@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstring>
 
+bool running = true;
 
 class MyHandler : public base::SocketHandler
 {
@@ -18,9 +19,17 @@ class MyHandler : public base::SocketHandler
         {
             char buffer[1000];
             memset(buffer, 0, sizeof(buffer));
-            int len = m_io->readSocket(socket, buffer, sizeof(buffer));
 
+            int len = m_io->readSocket(socket, buffer, 5);
             std::cout << buffer << " size is : " << len << std::endl;
+
+            len = m_io->readSocket(socket, buffer, 6);
+            std::cout << buffer << " size is : " << len << std::endl;
+
+            len = m_io->readSocket(socket, buffer, 999);
+            std::cout << buffer << " size is : " << len << std::endl;
+
+            running = false;
         }
 
     private:
@@ -30,10 +39,10 @@ class MyHandler : public base::SocketHandler
 
 int main()
 {
-    base::IOManager m;
+    base::IOManager *m = new base::IOManager;
     base::WorkThread w("my_workThread");
 
-    MyHandler *handler = new MyHandler(&w, &m);
+    MyHandler *handler = new MyHandler(&w, m);
 
     base::Net::SocketAddress addr("localhost", 6666);
 
@@ -44,14 +53,21 @@ int main()
         std::cout << "connect failed!\n";
     }
 
-    m.addSocket(socket, handler);
+    m->addSocket(socket, handler);
 
-    while (1)
+    char* s = new char[20];
+    memcpy(s, "hello world", 11);
+    m->writeSocket(socket, s, 11);
+
+    while (running)
     {
-        char* s = new char[20];
-        memcpy(s, "hello world", 12);
-        m.writeSocket(socket, s, 12);
         sleep (1);
     }
+
+    // TODO: destroy ?
+    delete m;
+    delete handler;
+    delete socket;
+
     return 0;
 }
