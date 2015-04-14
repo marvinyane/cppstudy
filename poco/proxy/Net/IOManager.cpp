@@ -1,8 +1,7 @@
-#include "IOManager.h"
-
-#include "../Foundation/WorkThread.h"
 #include <iostream>
 #include <cstring>
+
+#include "IOManager.h"
 
 namespace base
 {
@@ -11,7 +10,7 @@ IOManager::IOManager()
 {
     m_running = true;
 
-    m_thread = new WorkThread;
+    m_thread = new WorkThread("IOThread");
     m_thread->start();
 
     m_thread->postTask(Bind(&IOManager::run, this));
@@ -29,40 +28,38 @@ IOManager::~IOManager()
 
 void IOManager::run()
 {
-    Poco::Timespan m_timeout(3000);
-
     while(m_running)
     {
         /**/
-        Poco::Net::Socket::SocketList readable;
-        Poco::Net::Socket::SocketList writeable;
-        Poco::Net::Socket::SocketList exceptable;
+        Net::Socket::SocketList readable;
+        Net::Socket::SocketList writeable;
+        Net::Socket::SocketList exceptable;
 
         std::vector<SocketNode*>::iterator it = m_sockets.begin();
         for (; it != m_sockets.end(); it++)
         {
             SocketNode* node = *it;
-            if (node->m_write.size())
+            while (node->m_write.size())
             {
                 int length = 0;
                 char* str = node->m_write.pop(&length);
-                node->m_socket.impl()->sendBytes(str, length);
+                int ret = node->m_socket->sendBytes(str, length);
                 delete [] str;
             }
 
             readable.push_back(node->m_socket);
         }
 
-        if (Poco::Net::Socket::select(readable, writeable, exceptable, m_timeout))
+        if (Net::Socket::select(readable, writeable, exceptable, 50000))
         {
-            Poco::Net::Socket::SocketList::iterator it = readable.begin();
+            Net::Socket::SocketList::iterator it = readable.begin();
             for (; it != readable.end(); it++)
             {
-                Poco::Net::Socket s = *it;
+                Net::Socket* s = *it;
                 char buffer[1000];
                 memset(buffer, 0, sizeof(buffer));
 
-                int len = s.impl()->receiveBytes(buffer, 1000);
+                int len = s->receiveBytes(buffer, 1000);
 
                 SocketNode* node = searchSocketNode(s);
                 node->m_read.push(buffer, len);
@@ -73,12 +70,12 @@ void IOManager::run()
     }
 }
 
-bool IOManager::addSocket(Poco::Net::Socket &socket, SocketHandler *handler)
+bool IOManager::addSocket(Net::Socket *socket, SocketHandler *handler)
 {
     addSocketNode(socket, handler);
 }
 
-int IOManager::readSocket(Poco::Net::Socket &socket, char* s, int length)
+int IOManager::readSocket(Net::Socket *socket, char* s, int length)
 {
     int readLen = 0;
     SocketNode* node = searchSocketNode(socket);
@@ -89,7 +86,7 @@ int IOManager::readSocket(Poco::Net::Socket &socket, char* s, int length)
     return readLen;
 }
 
-int IOManager::writeSocket(Poco::Net::Socket &socket, const char* s, int length)
+int IOManager::writeSocket(Net::Socket *socket, const char* s, int length)
 {
     SocketNode* node = searchSocketNode(socket);
 
@@ -99,13 +96,13 @@ int IOManager::writeSocket(Poco::Net::Socket &socket, const char* s, int length)
 }
 
 
-void IOManager::addSocketNode(Poco::Net::Socket &socket, SocketHandler *handler)
+void IOManager::addSocketNode(Net::Socket *socket, SocketHandler *handler)
 {
     SocketNode* node = new SocketNode(socket, handler);
     m_sockets.push_back(node);
 }
 
-void IOManager::deleteSocketNode(Poco::Net::Socket &socket)
+void IOManager::deleteSocketNode(Net::Socket *socket)
 {
     std::vector<SocketNode*>::iterator it = m_sockets.begin();
 
@@ -119,7 +116,7 @@ void IOManager::deleteSocketNode(Poco::Net::Socket &socket)
     }
 }
 
-IOManager::SocketNode* IOManager::searchSocketNode(Poco::Net::Socket &socket)
+IOManager::SocketNode* IOManager::searchSocketNode(Net::Socket *socket)
 {
     std::vector<SocketNode*>::iterator it = m_sockets.begin();
 

@@ -4,7 +4,8 @@
 #include "../Foundation/RingBuffer.h"
 #include "../Foundation/WorkThread.h"
 
-#include "Poco/Net/Socket.h"
+#include "Socket.h"
+#include "SocketAddress.h"
 
 #include <string>
 
@@ -31,7 +32,7 @@ class SocketHandler
             }
         }
 
-        virtual void readReady(Poco::Net::Socket& socket)
+        virtual void readReady(Net::Socket* socket)
         {
         }
 
@@ -56,13 +57,13 @@ class IOManager
         IOManager();
         ~IOManager();
 
-        bool addSocket(Poco::Net::Socket &socket, SocketHandler *handler);
+        bool addSocket(Net::Socket *socket, SocketHandler *handler);
 
-        int readSocket(Poco::Net::Socket &socket, char* s, int length);
+        int readSocket(Net::Socket *socket, char* s, int length);
 
-        int writeSocket(Poco::Net::Socket &socket, const char* s, int length);
+        int writeSocket(Net::Socket *socket, const char* s, int length);
 
-        int readSocketAvalible(Poco::Net::Socket &socket);
+        int readSocketAvalible(Net::Socket *socket);
 
         void run(void);
 
@@ -72,12 +73,12 @@ class IOManager
         struct SocketNode
         {
             public:
-                Poco::Net::Socket m_socket;
+                Net::Socket* m_socket;
                 base::SocketHandler* m_handler;
                 base::RingBuffer m_read;
                 base::RingBuffer m_write;
 
-                SocketNode(Poco::Net::Socket &socket, SocketHandler *handler) :
+                SocketNode(Net::Socket *socket, SocketHandler *handler) :
                     m_socket(socket),
                     m_handler(handler),
                     m_read(),
@@ -89,9 +90,9 @@ class IOManager
         std::vector<SocketNode*> m_sockets;
 
         /*add - delete - search*/
-        void addSocketNode(Poco::Net::Socket& socket, base::SocketHandler* handler);
-        void deleteSocketNode(Poco::Net::Socket& socket);
-        SocketNode* searchSocketNode(Poco::Net::Socket& socket);
+        void addSocketNode(Net::Socket* socket, base::SocketHandler* handler);
+        void deleteSocketNode(Net::Socket* socket);
+        SocketNode* searchSocketNode(Net::Socket* socket);
 };
 
 }

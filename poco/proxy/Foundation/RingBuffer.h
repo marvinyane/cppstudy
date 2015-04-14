@@ -1,7 +1,7 @@
 #ifndef __RINGBUFFER_H__
 #define __RINGBUFFER_H__
 
-#define NULL 0
+#include <string>
 
 namespace base
 {

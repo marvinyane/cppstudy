@@ -102,6 +102,15 @@ WorkThread::WorkThread()
     m_thread.insert(std::pair<void*, void*>((void*)proxy, (void*)this));
 }
 
+WorkThread::WorkThread(const std::string& name)
+{
+    
+    m_run = new TaskRunner;
+    proxy = new Poco::Thread(name);
+        
+    m_thread.insert(std::pair<void*, void*>((void*)proxy, (void*)this));
+}
+
 WorkThread::~WorkThread()
 {
     m_run->stop();

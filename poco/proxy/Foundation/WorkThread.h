@@ -4,6 +4,7 @@
 #include "callback.h"
 #include "Timestamp.h"
 #include <map>
+#include <string>
 
 namespace Poco
 {
@@ -18,6 +19,7 @@ class WorkThread
 {
     public:
         WorkThread();
+        WorkThread(const std::string& name);
 
         ~WorkThread();
 

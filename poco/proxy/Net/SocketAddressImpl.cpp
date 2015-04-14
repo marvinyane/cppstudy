@@ -85,10 +85,12 @@ const struct sockaddr* SocketAddress::addr() const
 
 int SocketAddress::af() const
 {
+    return proxy->af();
 }
 
 std::string SocketAddress::toString() const
 {
+    return proxy->toString();
 }
 
 IPAddress::Family SocketAddress::family() const
