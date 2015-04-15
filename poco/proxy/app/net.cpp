@@ -6,68 +6,93 @@
 
 bool running = true;
 
+// TODO
 class MyHandler : public base::SocketHandler
 {
     public:
-        MyHandler(base::WorkThread* work, base::IOManager* manager) : 
-            SocketHandler(work),
-            m_io(manager)
+        MyHandler() : 
+            SocketHandler(new base::WorkThread),
+            m_io(new base::IOManager)
         {
+            m_work->start();
+        }
+        ~MyHandler()
+        {
+            /*close socket?*/
+            
+            delete m_io;
+            delete m_work;
+
         }
 
-        void readReady(base::Net::Socket* socket)
+        int connect()
+        {
+            base::Net::SocketAddress addr("localhost", 6666);
+            m_socket = new base::Net::StreamSocket; 
+
+            if (m_socket->connect(addr) != 0)
+            {
+                return -1;
+            }
+
+            m_io->addSocket(m_socket, this);
+            return 0;
+        }
+
+        int disconnect()
+        {
+            if (m_socket)
+            {
+                m_io->removeSocket(m_socket);
+                m_socket->close();
+                return 0;
+            }
+
+            return -1;
+        }
+
+        void sayHello()
+        {
+            m_socket->sendBytes("hello", 6);
+        }
+
+        virtual void readReady(base::Net::Socket* socket)
         {
             char buffer[1000];
             memset(buffer, 0, sizeof(buffer));
 
-            int len = m_io->readSocket(socket, buffer, 5);
-            std::cout << buffer << " size is : " << len << std::endl;
+            int len = m_io->readSocket(socket, buffer, 999);
+            std::cout << "recv size is : " << len << std::endl;
+            std::cout << buffer << "\n";
 
-            len = m_io->readSocket(socket, buffer, 6);
-            std::cout << buffer << " size is : " << len << std::endl;
-
-            len = m_io->readSocket(socket, buffer, 999);
-            std::cout << buffer << " size is : " << len << std::endl;
+            this->disconnect();
+        }
+        virtual void disconnected(base::Net::Socket* socket)
+        {
+            /*disconnect!*/
+            std::cout << "disconnected!\n";
+            delete m_socket;
+            m_socket = NULL;
 
             running = false;
         }
 
     private:
         base::IOManager* m_io;
+        base::Net::StreamSocket* m_socket;
         
 };
 
 int main()
 {
-    base::IOManager *m = new base::IOManager;
-    base::WorkThread w("my_workThread");
-
-    MyHandler *handler = new MyHandler(&w, m);
-
-    base::Net::SocketAddress addr("localhost", 6666);
-
-    base::Net::StreamSocket *socket = new base::Net::StreamSocket; 
-
-    if (socket->connect(addr) != 0)
-    {
-        std::cout << "connect failed!\n";
-    }
-
-    m->addSocket(socket, handler);
-
-    char* s = new char[20];
-    memcpy(s, "hello world", 11);
-    m->writeSocket(socket, s, 11);
+    MyHandler handler;
+    handler.connect();
+    handler.sayHello();
 
     while (running)
     {
         sleep (1);
     }
-
-    // TODO: destroy ?
-    delete m;
-    delete handler;
-    delete socket;
 
     return 0;
 }

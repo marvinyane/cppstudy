@@ -77,10 +77,12 @@ base::UInt16 SocketAddress::port() const
 
 base_socklen_t SocketAddress::length() const
 {
+    return 0;
 }
 
 const struct sockaddr* SocketAddress::addr() const
 {
+    return NULL;
 }
 
 int SocketAddress::af() const
@@ -95,16 +97,20 @@ std::string SocketAddress::toString() const
 
 IPAddress::Family SocketAddress::family() const
 {
+    return IPAddress::IPv4;
 }
 
 bool SocketAddress::operator < (const SocketAddress& socketAddress) const
 {
+    return proxy->operator<(*(socketAddress.proxy));
 }
 bool SocketAddress::operator == (const SocketAddress& socketAddress) const
 {
+    return proxy->operator==(*(socketAddress.proxy));
 }
 bool SocketAddress::operator != (const SocketAddress& socketAddress) const
 {
+    return proxy->operator!=(*(socketAddress.proxy));
 }
 
 }}

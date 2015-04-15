@@ -16,6 +16,8 @@ static Poco::Net::IPAddress::Family convert2PocoFamily(IPAddress::Family family)
     {
         f = Poco::Net::IPAddress::IPv6;
     }
+
+    return f;
 }
 
 static IPAddress::Family convert2BaseFamily(Poco::Net::IPAddress::Family family)
@@ -29,6 +31,8 @@ static IPAddress::Family convert2BaseFamily(Poco::Net::IPAddress::Family family)
     {
         f = IPAddress::IPv6;
     }
+
+    return f;
 }
 
 IPAddress::IPAddress()
@@ -280,10 +284,10 @@ IPAddress IPAddress::wildcard(Family family)
     return IPAddress(family);
 }
 
+#if 0
 IPAddress IPAddress::broadcast()
 {
-    //TODO:
 }
-
+#endif
 
 }}

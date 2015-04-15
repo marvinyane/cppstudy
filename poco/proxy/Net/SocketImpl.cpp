@@ -19,6 +19,9 @@ Socket::~Socket()
 {
 }
 
+int Socket::sendBytes(const char* buffer, int length){return 0;}
+int Socket::receiveBytes(char* buffer, int length){return 0;}
+
 int Socket::select(SocketList& readList, SocketList& writeList,SocketList& exceptList, const int timeout)
 {
     int ret = 0;
@@ -48,6 +51,46 @@ int Socket::select(SocketList& readList, SocketList& writeList,SocketList& excep
     try 
     {
         ret = Poco::Net::Socket::select(m_readList, m_writeList, m_exceptList, Poco::Timespan(timeout));
+        
+        it = readList.begin();
+        while (it != readList.end())
+        {
+            if (std::find(m_readList.begin(), m_readList.end(), *((*it)->getPorxy())) == m_readList.end())
+            {
+                it = readList.erase(it);
+            }
+            else
+            {
+                it ++;
+            }
+        }
+
+        it = writeList.begin();
+        while( it != writeList.end())
+        {
+            if (std::find(m_writeList.begin(), m_writeList.end(), *((*it)->getPorxy())) == m_writeList.end())
+            {
+                it = writeList.erase(it);
+            }
+            else
+            {
+                it ++;
+            }
+        }
+
+        it = exceptList.begin();
+        while( it != exceptList.end())
+        {
+            if (std::find(m_exceptList.begin(), m_exceptList.end(), *((*it)->getPorxy())) == m_exceptList.end())
+            {
+                it = exceptList.erase(it);
+            }
+            else
+            {
+                it ++;
+            }
+        }
+
     }
 
     catch(Poco::Exception& e)
@@ -129,6 +172,12 @@ Poco::Net::Socket* StreamSocket::getPorxy()
     return proxy;
 }
 
+SocketAddress StreamSocket::getAddress()
+{
+    Poco::Net::SocketAddress addr = proxy->address();
+    return SocketAddress(addr.toString());
+}
+
 int StreamSocket::sendBytes(const char* buffer, int length)
 {
     int ret = 0;
@@ -140,6 +189,8 @@ int StreamSocket::sendBytes(const char* buffer, int length)
     {
         std::cout << "send bytes exception : " << e.what() << "\n";
     }
+
+    return ret;
 }
 
 int StreamSocket::receiveBytes(char* buffer, int length)

@@ -25,13 +25,15 @@ namespace Net{
 
             virtual void close() = 0;
 
-            virtual int sendBytes(const char* buffer, int length) = 0;
-            virtual int receiveBytes(char* buffer, int length) = 0;
+            virtual int sendBytes(const char* buffer, int length);
+            virtual int receiveBytes(char* buffer, int length);
 
             static int select(SocketList& readList, SocketList& writeList,
                     SocketList& exceptList, const int timeout);
 
             virtual Poco::Net::Socket* getPorxy() = 0;
+
+            virtual SocketAddress getAddress() = 0;
 
         private:
             Socket(const Socket& socket);
@@ -59,6 +61,7 @@ namespace Net{
             void shutdown();
 
             virtual Poco::Net::Socket* getPorxy();
+            virtual SocketAddress getAddress();
         private:
             Poco::Net::StreamSocket* proxy;
     };

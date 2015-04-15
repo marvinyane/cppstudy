@@ -62,12 +62,12 @@ namespace base
 
 	bool FastMutex::tryLock()
     {
-        proxy->tryLock();
+        return proxy->tryLock();
     }
 
 	bool FastMutex::tryLock(long milliseconds)
     {
-        proxy->tryLock(milliseconds);
+        return proxy->tryLock(milliseconds);
     }
 
 	void FastMutex::unlock()

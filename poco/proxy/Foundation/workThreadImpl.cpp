@@ -114,7 +114,7 @@ WorkThread::WorkThread(const std::string& name)
 WorkThread::~WorkThread()
 {
     m_run->stop();
-    m_run->wait(1000);
+    proxy->join();
 
     delete m_run;
         
@@ -148,6 +148,18 @@ void WorkThread::stop()
 void WorkThread::wait(long ms)
 {
     m_run->wait(ms);
+}
+
+void WorkThread::join(int ms)
+{
+    if (ms == 0)
+    {
+        proxy->join();
+    }
+    else
+    {
+        proxy->join(ms);
+    }
 }
 
 void WorkThread::postTask(const Closure& task)

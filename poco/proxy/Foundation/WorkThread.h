@@ -33,6 +33,8 @@ class WorkThread
 
         void wait(long ms);
 
+        void join(int ms);
+
         void postTask(const Closure& task);
 
         static WorkThread *currentWorkThread();
