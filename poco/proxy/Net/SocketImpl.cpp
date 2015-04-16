@@ -2,6 +2,7 @@
 #include "SocketAddress.h"
 #include "IPAddress.h"
 #include "NetworkInterface.h"
+#include "RingBuffer.h"
 
 #include "Poco/Net/Socket.h"
 #include "Poco/Net/SocketStream.h"
@@ -15,7 +16,16 @@
 namespace base{
 namespace Net{
 
-Socket::Socket()
+Socket::Socket(base::SocketHandler* handler) : 
+    m_handler(handler), 
+    m_read(),
+    m_write(),
+    m_readLeft(NULL),
+    m_readSign(0),
+    m_readLen(0),
+    m_writeLeft(NULL),
+    m_writeSign(0),
+    m_writeLen(0)
 {
 }
 
@@ -23,11 +33,107 @@ Socket::~Socket()
 {
 }
 
-int Socket::sendBytes(const char* buffer, int length){return 0;}
-int Socket::receiveBytes(char* buffer, int length){return 0;}
-StreamSocket* Socket::acceptConnection(){return NULL;}
+int Socket::read(char* s, int length)
+{
+    int readSign = 0;
+    if (m_readLeft)
+    {
+        if ((m_readLen - m_readSign) > length)
+        {
+            memcpy(s, m_readLeft + m_readSign, length);
+            m_readLen -= length;
+            m_readSign += length;
 
-void Socket::setBlocking(bool s){}
+            return length;
+        }
+        else
+        {
+            memcpy(s, m_readLeft + m_readSign, m_readLen - m_readSign);
+            readSign += m_readLen - m_readSign;
+
+            m_readLeft = NULL;
+            m_readLen = 0;
+            m_readSign = 0;
+        }
+    }
+
+    while (1)
+    {
+        int readLen = 0;
+        char* tmp = m_read.pop(&readLen);
+        if (tmp == NULL)
+        {
+            return readSign;
+        }
+
+        if (readLen <= (length - readSign))
+        {
+            memcpy(s + readSign, tmp, readLen);
+            readSign += readLen;
+            delete [] tmp;
+        }
+        else
+        {
+            if (readSign != length)
+            {
+                memcpy(s + readSign, tmp, length - readSign);
+            }
+
+            m_readLeft = tmp;
+            m_readSign = length - readSign;
+            m_readLen = readLen;
+
+            return length;
+        }
+    }
+
+}
+
+int Socket::write(const char* buffer, int length)
+{
+    m_write.push(buffer, length);
+}
+
+char* Socket::readToSend(int& length)
+{
+    if (m_writeLeft)
+    {
+        char* ret = m_writeLeft + m_writeSign;
+        length = m_writeLen - m_writeSign;
+
+        m_writeLeft = NULL;
+        m_writeSign = 0;
+        m_writeLen = 0;
+
+        return ret;
+    }
+
+    if (m_write.size() > 0)
+    {
+        char* str = m_write.pop(&length);
+        if (str == NULL)
+        {
+            length = 0;
+        }
+
+        return str;
+    }
+
+    length = 0;
+    return NULL;
+}
+
+void Socket::SendFailed(char* buffer, int length, int sign)
+{
+    m_writeLeft = buffer;
+    m_writeSign = sign;
+    m_writeLen = length;
+}
+
+int Socket::writeFromRead(const char* buffer, int length)
+{
+    m_read.push(buffer, length);
+}
 
 int Socket::select(SocketList& readList, SocketList& writeList,SocketList& exceptList, const int timeout)
 {
@@ -111,275 +217,6 @@ int Socket::select(SocketList& readList, SocketList& writeList,SocketList& excep
 
 
     return ret;
-}
-
-
-StreamSocket::StreamSocket()
-{
-    proxy = new Poco::Net::StreamSocket;
-}
-
-
-StreamSocket::StreamSocket(Poco::Net::StreamSocket* socket)
-{
-    proxy = new Poco::Net::StreamSocket(*socket);
-}
-
-StreamSocket::~StreamSocket()
-{
-    delete proxy;
-}
-
-int StreamSocket::connect(const SocketAddress& address)
-{
-    try
-    {
-        proxy->connect(address.getProxy());
-        return 0;
-    }
-    catch(...)
-    {
-        return -1;
-    }
-}
-
-int StreamSocket::connect(const SocketAddress& address, const int timeout)
-{
-    try
-    {
-        proxy->connect(address.getProxy(), Poco::Timespan(timeout));
-        return 0;
-    }
-    catch(...)
-    {
-        return -1;
-    }
-}
-            
-int StreamSocket::connectNB(const SocketAddress& address)
-{
-    try
-    {
-        proxy->connectNB(address.getProxy());
-        return 0;
-    }
-    catch(...)
-    {
-        return -1;
-    }
-}
-
-void StreamSocket::close()
-{
-    proxy->close();
-}
-
-
-void StreamSocket::shutdown()
-{
-    proxy->shutdown();
-}
-
-Poco::Net::Socket* StreamSocket::getProxy()
-{
-    return proxy;
-}
-
-SocketAddress StreamSocket::getAddress()
-{
-    Poco::Net::SocketAddress addr = proxy->address();
-    return SocketAddress(addr);
-}
-
-void StreamSocket::setBlocking(bool s)
-{
-    proxy->setBlocking(s);
-}
-
-int StreamSocket::sendBytes(const char* buffer, int length)
-{
-    int ret = 0;
-    try
-    {
-        ret = proxy->sendBytes(reinterpret_cast<const void*>(buffer), length);
-    }
-    catch (Poco::Exception& e)
-    {
-        std::cout << "send bytes exception : " << e.what() << "\n";
-    }
-
-    return ret;
-}
-
-int StreamSocket::receiveBytes(char* buffer, int length)
-{
-    int ret = 0;
-
-    try
-    {
-        ret = proxy->receiveBytes(reinterpret_cast<void*>(buffer), length);
-    }
-    catch(Poco::TimeoutException& e)
-    {
-        std::cout << "time out : " << e.what() << "\n";
-    }
-    catch(Poco::Net::NetException& e)
-    {
-        std::cout << "Net : " << e.what() << "\n";
-    }
-    catch(...)
-    {
-    }
-
-    return ret;
-}
-
-
-
-ServerSocket::ServerSocket()
-{
-    proxy = new Poco::Net::ServerSocket;
-}
-
-ServerSocket::~ServerSocket()
-{
-    delete proxy;
-}
-
-void ServerSocket::close()
-{
-    proxy->close();
-}
-
-SocketAddress ServerSocket::getAddress()
-{
-    return SocketAddress(proxy->address());
-}
-
-Poco::Net::Socket* ServerSocket::getProxy()
-{
-    return proxy;
-}
-
-void ServerSocket::bind(SocketAddress &addr, bool reuse)
-{
-    proxy->bind(addr.getProxy(), reuse);
-}
-
-void ServerSocket::bind(UInt16 port)
-{
-    proxy->bind(port);
-}
-
-void ServerSocket::listen()
-{
-    proxy->listen();
-}
-
-StreamSocket* ServerSocket::acceptConnection()
-{
-    StreamSocket* socket = NULL;
-    try
-    {
-        Poco::Net::StreamSocket s = proxy->acceptConnection();
-        socket = new StreamSocket(&s);
-    }
-    catch(Poco::IOException& e)
-    {
-        std::cout << "exception? : " << e.what() << "\n";
-    }
-    catch (...)
-    {
-        std::cout << "unknown exception?\n";
-    }
-
-    return socket;
-}
-
-void ServerSocket::setBlocking(bool s)
-{
-    proxy->setBlocking(s);
-}
-
-
-
-MulticastSocket::MulticastSocket():
-    proxy(new Poco::Net::MulticastSocket)
-{
-}
-
-MulticastSocket::MulticastSocket(const MulticastSocket& other)
-{
-    proxy = other.proxy;
-}
-
-MulticastSocket::MulticastSocket(const Poco::Net::MulticastSocket& other):
-    proxy (new Poco::Net::MulticastSocket(other))
-{
-}
-
-MulticastSocket::~MulticastSocket()
-{
-}
-
-MulticastSocket& MulticastSocket::operator=(const MulticastSocket& other)
-{
-    proxy = other.proxy;
-    return *this;
-}
-
-void MulticastSocket::close()
-{
-    proxy->close();
-}
-
-void MulticastSocket::bind(SocketAddress& addr, bool reuse)
-{
-    proxy->bind(addr.getProxy(), reuse);
-}
-
-Poco::Net::Socket* MulticastSocket::getProxy()
-{
-    return proxy.get();
-}
-
-SocketAddress MulticastSocket::getAddress()
-{
-    Poco::Net::SocketAddress addr = proxy->address();
-    return SocketAddress(addr);
-}
-
-void MulticastSocket::setBlocking(bool flag)
-{
-    proxy->setBlocking(flag);
-}
-
-
-void MulticastSocket::setInterface(const NetworkInterface& interfc)
-{
-    proxy->setInterface(interfc.getProxy());
-}
-
-void MulticastSocket::setLoopback(bool flag)
-{
-    proxy->setLoopback(flag);
-}
-
-void MulticastSocket::joinGroup(const IPAddress& groupAddress, const NetworkInterface& interfc)
-{
-    proxy->joinGroup(groupAddress.getProxy(), interfc.getProxy());
-}
-
-int MulticastSocket::sendBytes(const char* buffer, int length)
-{
-    std::cout << "proxy address : " << proxy->address().toString() << "\n";
-    proxy->sendTo(buffer, length,  proxy->address());
-}
-
-int MulticastSocket::receiveBytes(char* buffer, int length)
-{
-    std::cout << "data coming.... \n";
-    return proxy->receiveBytes(buffer, length);
 }
 
 }  // NET
