@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "IOManager.h"
+#include "Socket.h"
 
 namespace base
 {
@@ -28,7 +29,7 @@ IOManager::~IOManager()
 
 void IOManager::run()
 {
-    while(m_running)
+    if (m_running)
     {
         /**/
         Net::Socket::SocketList readable;
@@ -63,9 +64,14 @@ void IOManager::run()
                 if (node->stateToClose())
                 {
                     /*read this socket in all able*/
-                    std::remove(readable.begin(), readable.end(), node->m_socket);
-                    std::remove(writeable.begin(), writeable.end(), node->m_socket);
-                    std::remove(exceptable.begin(), exceptable.end(), node->m_socket);
+                    readable.erase(std::remove(readable.begin(), readable.end(), node->m_socket), 
+                            readable.end());
+
+                    writeable.erase(std::remove(writeable.begin(), writeable.end(), node->m_socket), 
+                            writeable.end());
+
+                    exceptable.erase(std::remove(exceptable.begin(), exceptable.end(), node->m_socket), 
+                            exceptable.end());
 
                     node->m_handler->getWorkThread()->postTask(Bind(&SocketHandler::disconnected,
                             node->m_handler, node->m_socket));
@@ -91,23 +97,38 @@ void IOManager::run()
                     continue;
                 }
 
-                char buffer[1000];
-                memset(buffer, 0, sizeof(buffer));
-
-                int len = s->receiveBytes(buffer, sizeof(buffer));
-
-                if (len > 0)
+                if (node->m_state == IOManager::Connected)
                 {
-                    node->m_read.push(buffer, len);
-                    node->m_handler->getWorkThread()->postTask(Bind(&SocketHandler::readReady,
-                                node->m_handler, s));
+                    char buffer[1000];
+                    memset(buffer, 0, sizeof(buffer));
+
+                    int len = s->receiveBytes(buffer, sizeof(buffer));
+
+                    if (len > 0)
+                    {
+                        node->m_read.push(buffer, len);
+                        node->m_handler->getWorkThread()->postTask(Bind(&SocketHandler::readReady,
+                                    node->m_handler, s));
+                    }
+                    else if (len == 0)
+                    {
+                        node->m_handler->getWorkThread()->postTask(Bind(&SocketHandler::disconnected,
+                                    node->m_handler, s));
+
+                        /*remove?*/
+                        s->close();
+                        m_mutex.lock();
+                        m_sockets.erase(std::remove(m_sockets.begin(), m_sockets.end(), node), m_sockets.end());
+                        m_mutex.unlock();
+                    }
                 }
-                else if (len == 0)
+                else // listen
                 {
-                    /*disconnected!*/
-                    node->m_handler->getWorkThread()->postTask(Bind(&SocketHandler::disconnected,
-                                node->m_handler, s));
-
+                    Net::StreamSocket* socket = s->acceptConnection();
+                    std::cout << "handler : " << (void*)node->m_handler << "\n";
+                    addSocketNode(socket, node->m_handler, Connected);
+                    node->m_handler->getWorkThread()->postTask(Bind(&SocketHandler::connected,
+                                node->m_handler, socket));
                 }
             }
 
@@ -174,11 +195,42 @@ void IOManager::run()
             }
         }
     }
+
+    m_thread->postTask(Bind(&IOManager::run, this));
+}
+
+bool IOManager::addServerSocket(Net::SocketAddress& addr, SocketHandler *handler)
+{
+    Net::ServerSocket *socket = new Net::ServerSocket;
+    socket->bind(addr, true);
+
+    socket->listen();
+
+    socket->setBlocking(false);
+
+    addSocketNode(socket, handler, Listen);
+
+    return true;
+}
+
+bool IOManager::addServerSocket(UInt16 port, SocketHandler *handler)
+{
+    Net::ServerSocket *socket = new Net::ServerSocket;
+    socket->bind(port);
+
+    socket->listen();
+    
+    socket->setBlocking(false);
+
+    addSocketNode(socket, handler, Listen);
+
+    return true;
 }
 
 bool IOManager::addSocket(Net::Socket *socket, SocketHandler *handler)
 {
     addSocketNode(socket, handler, Connected);
+
     return true;
 }
 
@@ -291,15 +343,18 @@ void IOManager::addSocketNode(Net::Socket *socket, SocketHandler *handler, IOMan
 
 IOManager::SocketNode* IOManager::searchSocketNode(Net::Socket *socket)
 {
+    m_mutex.lock();
     std::vector<SocketNode*>::iterator it = m_sockets.begin();
 
     for (; it != m_sockets.end(); it++)
     {
         if ((*it)->m_socket == socket)
         {
+            m_mutex.unlock();
             return *it;
         }
     }
+    m_mutex.unlock();
 
     return NULL;
 }

@@ -22,6 +22,7 @@ class SocketHandler
         SocketHandler(WorkThread* work):m_work(work){}
         virtual ~SocketHandler(){}
 
+        virtual void connected(Net::StreamSocket* socket)=0;
         virtual void readReady(Net::Socket* socket)=0;
         virtual void disconnected(Net::Socket* socket)=0;
 
@@ -46,6 +47,9 @@ class IOManager
 
         IOManager();
         ~IOManager();
+
+        bool addServerSocket(Net::SocketAddress& addr, SocketHandler *handler);
+        bool addServerSocket(UInt16 port, SocketHandler *handler);
 
         bool addSocket(Net::Socket *socket, SocketHandler *handler);
 

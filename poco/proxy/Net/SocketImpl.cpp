@@ -3,6 +3,7 @@
 
 #include "Poco/Net/Socket.h"
 #include "Poco/Net/SocketStream.h"
+#include "Poco/Net/ServerSocket.h"
 #include "Poco/Net/NetException.h"
 #include "Poco/Exception.h"
 
@@ -21,6 +22,9 @@ Socket::~Socket()
 
 int Socket::sendBytes(const char* buffer, int length){return 0;}
 int Socket::receiveBytes(char* buffer, int length){return 0;}
+StreamSocket* Socket::acceptConnection(){}
+
+void Socket::setBlocking(bool s){}
 
 int Socket::select(SocketList& readList, SocketList& writeList,SocketList& exceptList, const int timeout)
 {
@@ -112,6 +116,12 @@ StreamSocket::StreamSocket()
     proxy = new Poco::Net::StreamSocket;
 }
 
+
+StreamSocket::StreamSocket(Poco::Net::StreamSocket* socket)
+{
+    proxy = new Poco::Net::StreamSocket(*socket);
+}
+
 StreamSocket::~StreamSocket()
 {
     delete proxy;
@@ -178,6 +188,11 @@ SocketAddress StreamSocket::getAddress()
     return SocketAddress(addr.toString());
 }
 
+void StreamSocket::setBlocking(bool s)
+{
+    proxy->setBlocking(s);
+}
+
 int StreamSocket::sendBytes(const char* buffer, int length)
 {
     int ret = 0;
@@ -215,6 +230,74 @@ int StreamSocket::receiveBytes(char* buffer, int length)
 
     return ret;
 }
+
+
+
+ServerSocket::ServerSocket()
+{
+    proxy = new Poco::Net::ServerSocket;
+}
+
+ServerSocket::~ServerSocket()
+{
+    delete proxy;
+}
+
+void ServerSocket::close()
+{
+    proxy->close();
+}
+
+SocketAddress ServerSocket::getAddress()
+{
+    proxy->address();
+}
+
+Poco::Net::Socket* ServerSocket::getPorxy()
+{
+    return proxy;
+}
+
+void ServerSocket::bind(SocketAddress &addr, bool reuse)
+{
+    proxy->bind(Poco::Net::SocketAddress(addr.toString()));
+}
+
+void ServerSocket::bind(UInt16 port)
+{
+    proxy->bind(port);
+}
+
+void ServerSocket::listen()
+{
+    proxy->listen();
+}
+
+StreamSocket* ServerSocket::acceptConnection()
+{
+    StreamSocket* socket = NULL;
+    try
+    {
+        Poco::Net::StreamSocket s = proxy->acceptConnection();
+        socket = new StreamSocket(&s);
+    }
+    catch(Poco::IOException& e)
+    {
+        std::cout << "exception? : " << e.what() << "\n";
+    }
+    catch (...)
+    {
+        std::cout << "unknown exception?\n";
+    }
+
+    return socket;
+}
+
+void ServerSocket::setBlocking(bool s)
+{
+    proxy->setBlocking(s);
+}
+
 
 }  // NET
 } // base

@@ -1,5 +1,7 @@
 #include "IOManager.h"
-#include "../Foundation/WorkThread.h"
+#include "WorkThread.h"
+
+#include "NetworkInterface.h"
 
 #include <iostream>
 #include <cstring>
@@ -12,7 +14,8 @@ class MyHandler : public base::SocketHandler
     public:
         MyHandler() : 
             SocketHandler(new base::WorkThread),
-            m_io(new base::IOManager)
+            m_io(new base::IOManager),
+            m_socket(NULL)
         {
             m_work->start();
         }
@@ -56,6 +59,16 @@ class MyHandler : public base::SocketHandler
             m_socket->sendBytes("hello", 6);
         }
 
+        void waitHello()
+        {
+            m_io->addServerSocket(6668, this);
+        }
+
+        virtual void connected(base::Net::StreamSocket* socket)
+        {
+            std::cout << "connected with : " << socket->getAddress().toString() << "\n";
+            m_socket = socket;
+        }
         virtual void readReady(base::Net::Socket* socket)
         {
             char buffer[1000];
@@ -85,9 +98,17 @@ class MyHandler : public base::SocketHandler
 
 int main()
 {
-    MyHandler handler;
-    handler.connect();
-    handler.sayHello();
+    //MyHandler handler;
+    //handler.waitHello();
+    //
+
+    base::Net::NetworkInterface::NetworkInterfaceList list = base::Net::NetworkInterface::list();
+    base::Net::NetworkInterface::NetworkInterfaceList::iterator it = list.begin();
+
+    for (; it != list.end(); ++it)
+    {
+        std::cout << "name : " << (*it).name() << "\n";
+    }
 
     while (running)
     {

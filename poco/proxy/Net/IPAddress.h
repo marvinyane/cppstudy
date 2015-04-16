@@ -51,6 +51,7 @@ public:
 
 	IPAddress(const IPAddress& addr);
 		/// Creates an IPAddress by copying another one.
+        //
 
 	explicit IPAddress(Family family);
 		/// Creates a wildcard (zero) IPAddress for the
