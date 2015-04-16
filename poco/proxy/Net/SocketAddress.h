@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include <string>
+#include <tr1/memory>
 
 #include "IPAddress.h"
 
@@ -67,6 +68,8 @@ public:
 
 	SocketAddress(const struct sockaddr* addr, int length);
 		/// Creates a SocketAddress from a native socket address.
+        //
+    SocketAddress(const Poco::Net::SocketAddress& addr);
 
 	~SocketAddress();
 		/// Destroys the SocketAddress.
@@ -99,8 +102,10 @@ public:
 	bool operator == (const SocketAddress& socketAddress) const;
 	bool operator != (const SocketAddress& socketAddress) const;
 
+    Poco::Net::SocketAddress& getProxy()const;
+
 private:
-    Poco::Net::SocketAddress* proxy;
+    std::tr1::shared_ptr<Poco::Net::SocketAddress> proxy;
 };
 
 }}

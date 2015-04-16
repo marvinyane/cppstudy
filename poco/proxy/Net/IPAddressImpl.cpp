@@ -35,71 +35,70 @@ static IPAddress::Family convert2BaseFamily(Poco::Net::IPAddress::Family family)
     return f;
 }
 
-IPAddress::IPAddress()
+IPAddress::IPAddress():
+    proxy(new Poco::Net::IPAddress)
 {
-    proxy = new Poco::Net::IPAddress;
 }
 
 IPAddress::IPAddress(const IPAddress& addr)
 {
-    proxy = new Poco::Net::IPAddress(*addr.proxy);
+    proxy = addr.proxy;
 }
 
-IPAddress::IPAddress(Family family)
+IPAddress::IPAddress(Family family):
+    proxy(new Poco::Net::IPAddress(convert2PocoFamily(family)))
 {
-    proxy = new Poco::Net::IPAddress(convert2PocoFamily(family));
 }
 
 IPAddress::IPAddress(const std::string& addr)
 {
     try
     {
-        proxy = new Poco::Net::IPAddress(addr);
+        proxy = std::tr1::shared_ptr<Poco::Net::IPAddress>(new Poco::Net::IPAddress(addr));
     }
     catch(...)
     {
-        proxy = new Poco::Net::IPAddress(Poco::Net::IPAddress::IPv4);
+        proxy = std::tr1::shared_ptr<Poco::Net::IPAddress>(new Poco::Net::IPAddress(Poco::Net::IPAddress::IPv4));
     }
 }
 
-IPAddress::IPAddress(const std::string& addr, Family family)
+IPAddress::IPAddress(const std::string& addr, Family family):
+    proxy(new Poco::Net::IPAddress(addr, convert2PocoFamily(family)))
 {
-    proxy = new Poco::Net::IPAddress(addr, convert2PocoFamily(family));
 }
 
-IPAddress::IPAddress(const void* addr, base_socklen_t length)
+IPAddress::IPAddress(const void* addr, base_socklen_t length):
+    proxy(new Poco::Net::IPAddress(addr, length))
 {
-    proxy = new Poco::Net::IPAddress(addr, length);
 }
 
-IPAddress::IPAddress(const void* addr, base_socklen_t length, base::UInt32 scope)
+IPAddress::IPAddress(const void* addr, base_socklen_t length, base::UInt32 scope):
+    proxy(new Poco::Net::IPAddress(addr, length, scope))
 {
-    proxy = new Poco::Net::IPAddress(addr, length, scope);
 }
 
-IPAddress::IPAddress(unsigned prefix, Family family)
+IPAddress::IPAddress(unsigned prefix, Family family):
+    proxy(new Poco::Net::IPAddress(prefix, convert2PocoFamily(family)))
 {
-    proxy = new Poco::Net::IPAddress(prefix, convert2PocoFamily(family));
 }
 
 //IPAddress::IPAddress(const struct sockaddr& sockaddr)
 //{
 //}
 //
-IPAddress::IPAddress(const Poco::Net::IPAddress& address)
+IPAddress::IPAddress(const Poco::Net::IPAddress& address):
+    proxy(new Poco::Net::IPAddress(address))
 {
-    proxy = new Poco::Net::IPAddress(address);
 }
 
 
 IPAddress::~IPAddress()
 {
-    delete proxy;
 }
 
 IPAddress& IPAddress::operator = (const IPAddress& addr)
 {
-    proxy->operator=(*addr.proxy);
+    proxy = addr.proxy;
     return *this;
 }
 
@@ -290,4 +289,8 @@ IPAddress IPAddress::broadcast()
 }
 #endif
 
+Poco::Net::IPAddress& IPAddress::getProxy() const
+{
+    return *proxy;
+}
 }}

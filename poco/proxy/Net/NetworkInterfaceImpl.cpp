@@ -65,5 +65,16 @@ const std::string& NetworkInterface::name()
     return proxy->name();
 }
 
+unsigned int NetworkInterface::index()
+{
+    return proxy->index();
+}
+
+
+Poco::Net::NetworkInterface& NetworkInterface::getProxy() const
+{
+    return *proxy;
+}
+
 
 }}

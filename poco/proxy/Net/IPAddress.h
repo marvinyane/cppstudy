@@ -1,9 +1,10 @@
 #ifndef __BASE_IPADDRESS_H__
 #define __BASE_IPADDRESS_H__
 
+#include "types.h"
 #include <vector>
 #include <string>
-#include "types.h"
+#include <tr1/memory>
 
 namespace Poco
 {
@@ -333,8 +334,10 @@ public:
 	static IPAddress broadcast();
 		/// Returns a broadcast IPv4 address (255.255.255.255).
 
+    Poco::Net::IPAddress& getProxy() const;
 private:
-    Poco::Net::IPAddress *proxy;
+    std::tr1::shared_ptr<Poco::Net::IPAddress> proxy;
+
 };
 
 

@@ -2,6 +2,7 @@
 #include "WorkThread.h"
 
 #include "NetworkInterface.h"
+#include "Socket.h"
 
 #include <iostream>
 #include <cstring>
@@ -12,20 +13,18 @@ bool running = true;
 class MyHandler : public base::SocketHandler
 {
     public:
-        MyHandler() : 
-            SocketHandler(new base::WorkThread),
+        MyHandler() :
             m_io(new base::IOManager),
             m_socket(NULL)
         {
+            m_work = new base::WorkThread;
             m_work->start();
         }
         ~MyHandler()
         {
             /*close socket?*/
-            
             delete m_io;
             delete m_work;
-
         }
 
         int connect()
@@ -78,7 +77,7 @@ class MyHandler : public base::SocketHandler
             std::cout << "recv size is : " << len << std::endl;
             std::cout << buffer << "\n";
 
-            this->disconnect();
+            //this->disconnect();
         }
         virtual void disconnected(base::Net::Socket* socket)
         {
@@ -90,25 +89,85 @@ class MyHandler : public base::SocketHandler
             running = false;
         }
 
+
+        void initMulticast()
+        {
+            base::Net::NetworkInterface::NetworkInterfaceList list = base::Net::NetworkInterface::list();
+            base::Net::NetworkInterface::NetworkInterfaceList::iterator it = list.begin();
+
+            for (; it != list.end(); it++)
+            {
+                std::cout << "interface name : " << (*it).name() << ", index:" << (*it).index() << "\n";
+            }
+            
+            base::Net::NetworkInterface interface = base::Net::NetworkInterface::forIndex(5);
+
+            m_multi = new base::Net::MulticastSocket;
+
+            m_multi->setInterface(interface);
+            base::Net::SocketAddress addr("239.255.255.250:1900");
+            m_multi->bind(addr, true);
+            m_multi->joinGroup(base::Net::IPAddress("239.255.255.250"), interface);
+            m_multi->setLoopback(false);
+
+            m_search = new base::Net::MulticastSocket;
+            m_search->setInterface(interface);
+            base::Net::SocketAddress addr_search(interface.address(), 1900);
+            std::cout << "interface address : " << addr_search.toString() << "\n";
+            m_search->bind(addr_search, true);
+            m_search->setLoopback(false);
+
+
+            std::string query = "M-SEARCH * HTTP/1.1\r\nHOST: 239.250.250.250:1900\r\n\
+                         MAN: \"ssdp:discover\"\r\nMX: 1\r\n\
+                         ST: urn:schemas-upnp-org:device:TmServerDevice:1\r\n\r\n";
+
+            m_io->addSocket(m_multi, this);
+            m_io->addSocket(m_search, this);
+
+            m_search->sendBytes(query.c_str(), query.size());
+        }
+
+        virtual base::WorkThread* getWorkThread()
+        {
+            return m_work;
+        }
+
     private:
+        base::WorkThread* m_work;
         base::IOManager* m_io;
         base::Net::StreamSocket* m_socket;
+        base::Net::MulticastSocket *m_multi;
+        base::Net::MulticastSocket *m_search;
         
 };
 
 int main()
 {
-    //MyHandler handler;
-    //handler.waitHello();
+    MyHandler handler;
+    handler.initMulticast();
     //
 
-    base::Net::NetworkInterface::NetworkInterfaceList list = base::Net::NetworkInterface::list();
-    base::Net::NetworkInterface::NetworkInterfaceList::iterator it = list.begin();
+    //base::Net::NetworkInterface::NetworkInterfaceList list = base::Net::NetworkInterface::list();
+    //base::Net::NetworkInterface::NetworkInterfaceList::iterator it = list.begin();
 
-    for (; it != list.end(); ++it)
-    {
-        std::cout << "name : " << (*it).name() << "\n";
-    }
+    //for (; it != list.end(); ++it)
+    //{
+        //std::cout << "name : " << (*it).name() << "\n";
+    //}
+    //
+    //base::Net::SocketAddress s0;
+    //base::Net::SocketAddress s1("121.0.0.1:6666");
+
+    //s0 = s1;
+
+    //base::Net::SocketAddress s2(s0);
+
+    //std::cout << s1.toString() << s2.toString() << s0.toString() << "\n";
+    //
+    
+
+
 
     while (running)
     {

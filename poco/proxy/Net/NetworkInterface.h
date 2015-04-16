@@ -1,5 +1,5 @@
-#ifndef __NETWORKINTERFACE_H__
-#define __NETWORKINTERFACE_H__
+#ifndef __BASE_NETWORKINTERFACE_H__
+#define __BASE_NETWORKINTERFACE_H__
 
 #include <tr1/memory>
 #include <string>
@@ -36,6 +36,9 @@ namespace Net{
 
             const IPAddress& address();
             const std::string& name();
+            unsigned int index();
+
+            Poco::Net::NetworkInterface& getProxy() const;
 
         private:
             std::tr1::shared_ptr<Poco::Net::NetworkInterface> proxy;

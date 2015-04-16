@@ -6,61 +6,65 @@
 namespace base{
 namespace Net{
 
-SocketAddress::SocketAddress()
+SocketAddress::SocketAddress():
+    proxy(new Poco::Net::SocketAddress)
 {
-    proxy = new Poco::Net::SocketAddress;
 }
 
-SocketAddress::SocketAddress(const IPAddress& hostAddress, base::UInt16 portNumber)
+SocketAddress::SocketAddress(const IPAddress& hostAddress, base::UInt16 portNumber):
+    proxy(new Poco::Net::SocketAddress(hostAddress.getProxy(), portNumber))
 {
-    //proxy = new Poco::Net::SocketAddress(*hostAddress.proxy, portNumber);
 }
 
-SocketAddress::SocketAddress(base::UInt16 port)
+SocketAddress::SocketAddress(base::UInt16 port):
+    proxy(new Poco::Net::SocketAddress(port))
 {
-    proxy = new Poco::Net::SocketAddress(port);
 }
 
-SocketAddress::SocketAddress(const std::string& hostAddress, base::UInt16 portNumber)
+SocketAddress::SocketAddress(const std::string& hostAddress, base::UInt16 portNumber):
+    proxy(new Poco::Net::SocketAddress(hostAddress, portNumber))
 {
-    proxy = new Poco::Net::SocketAddress(hostAddress, portNumber);
 }
 
-SocketAddress::SocketAddress(const std::string& hostAddress, const std::string& portNumber)
+SocketAddress::SocketAddress(const std::string& hostAddress, const std::string& portNumber):
+    proxy(new Poco::Net::SocketAddress(hostAddress, portNumber))
 {
-    proxy = new Poco::Net::SocketAddress(hostAddress, portNumber);
 }
 
 SocketAddress::SocketAddress(const std::string& hostAndPort)
 {
     try
     {
-        proxy = new Poco::Net::SocketAddress(hostAndPort);
+        proxy = std::tr1::shared_ptr<Poco::Net::SocketAddress>(new Poco::Net::SocketAddress(hostAndPort));
     }
     catch(...)
     {
-        proxy = new Poco::Net::SocketAddress("8.8.8.8:8080");
+        proxy = std::tr1::shared_ptr<Poco::Net::SocketAddress>(new Poco::Net::SocketAddress("8.8.8.8:8080"));
     }
 }
 
 SocketAddress::SocketAddress(const SocketAddress& addr)
 {
-    proxy = new Poco::Net::SocketAddress(*addr.proxy);
+    proxy = addr.proxy;
 }
 
 //SocketAddress::SocketAddress(const struct sockaddr* addr, base_socklen_t length)
 //{
     //proxy = new Poco::Net::SocketAddress(addr, length);
 //}
+//
+SocketAddress::SocketAddress(const Poco::Net::SocketAddress& addr):
+    proxy(new Poco::Net::SocketAddress(addr))
+{
+}
 
 SocketAddress::~SocketAddress()
 {
-    delete proxy;
 }
 
 SocketAddress& SocketAddress::operator = (const SocketAddress& socketAddress)
 {
-    proxy->operator=(*socketAddress.proxy);
+    proxy = socketAddress.proxy;
     return *this;
 }
 
@@ -111,6 +115,12 @@ bool SocketAddress::operator == (const SocketAddress& socketAddress) const
 bool SocketAddress::operator != (const SocketAddress& socketAddress) const
 {
     return proxy->operator!=(*(socketAddress.proxy));
+}
+
+
+Poco::Net::SocketAddress& SocketAddress::getProxy()const
+{
+    return *proxy;
 }
 
 }}

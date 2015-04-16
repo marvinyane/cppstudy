@@ -19,19 +19,10 @@ class WorkThread;
 class SocketHandler
 {
     public:
-        SocketHandler(WorkThread* work):m_work(work){}
-        virtual ~SocketHandler(){}
-
         virtual void connected(Net::StreamSocket* socket)=0;
         virtual void readReady(Net::Socket* socket)=0;
         virtual void disconnected(Net::Socket* socket)=0;
-
-        WorkThread* getWorkThread()
-        {
-            return m_work;
-        }
-    protected:
-        WorkThread* m_work;
+        virtual WorkThread* getWorkThread() = 0;
 };
 
 
