@@ -11,7 +11,7 @@ inline const T& MyMax(const T& a, const T& b)
 
 ostream& operator << (ostream& s, const testCase& r)
 {
-    s << r.a << ':' << r.b;
+    s << "hello" << r.a << ':' << r.b;
     return s;
 }
 

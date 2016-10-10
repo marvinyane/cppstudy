@@ -27,13 +27,8 @@ class Derived : public Base
 
 int main()
 {
-    Derived* d = new Derived;
-
-    int a = 3;
-    double b = 4;
-
-    d->func(a);/*Base*/
-    d->func(b);/*Base*/
+    Base* d = new Derived;
+    d->func(3);
 
     return 0;
 }

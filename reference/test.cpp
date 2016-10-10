@@ -14,4 +14,11 @@ int main()
     string &rs = s;
 
     cout << sizeof(rs) << endl;
+
+    string s1("world");
+    string &rs1 = s1;
+
+    rs = rs1;
+
+    cout << "s : " << s << "\n";
 }
